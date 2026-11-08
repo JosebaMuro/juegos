@@ -3,7 +3,6 @@ name: APK
 on:
   push:
     branches: [main]
-    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -93,22 +92,29 @@ jobs:
 
   release:
     name: Publicar release
-    # Solo al subir una etiqueta vX.Y y si todos los motores y el APK se han compilado bien.
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Al integrar en main (o lanzándolo a mano), si todo se ha compilado bien.
+    # La etiqueta sale de --version-name en build.sh; si ese release ya existe, no hace nada.
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     needs: [motor, motor-snapdragon, apk]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: JuegosReunidos-apk
+          path: dist
       - name: Crear release con el APK
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
         run: |
-          mv JuegosReunidos.apk "JuegosReunidos-$TAG.apk"
-          gh release create "$TAG" "JuegosReunidos-$TAG.apk" -R "$GITHUB_REPOSITORY" \
-            --title "Juegos Reunidos $TAG" --generate-notes \
-            --notes "APK para Android arm64 (Android 5.0 o superior). Incluye IA local con motores CPU, GPU Vulkan, GPU Adreno y NPU Hexagon; la app elige el más rápido."
+          TAG="v$(grep -o -- '--version-name [^ ]*' build.sh | cut -d' ' -f2)"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::notice::El release $TAG ya existe; sube --version-name en build.sh para publicar otro."
+            exit 0
+          fi
+          mv dist/JuegosReunidos.apk "dist/JuegosReunidos-$TAG.apk"
+          gh release create "$TAG" "dist/JuegosReunidos-$TAG.apk" --target "$GITHUB_SHA" \
+            --title "Juegos Reunidos $TAG" \
+            --notes "APK para Android arm64 (Android 5.0 o superior). Incluye IA local con motores CPU, GPU Vulkan, GPU Adreno y NPU Hexagon; la app mide y elige el más rápido."
