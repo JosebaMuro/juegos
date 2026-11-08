@@ -6,8 +6,12 @@ Colección de juegos y herramientas para Android:
 - **Bloques**: piezas que caen y líneas que se completan (deslizar mueve, tocar gira, deslizar abajo deja caer; también hay botones).
 - **DOS**: DOSBox (js-dos 6.22 compilado a WebAssembly) dentro de un WebView, sin Internet. C: se guarda entre sesiones. Menú → *Importar* copia archivos o el contenido de un ZIP a C:. Teclado en pantalla completo y botón *Abc* para usar el teclado del móvil.
 - **Terminal Linux**: la shell real del sistema (`/system/bin/sh`, con las órdenes de toybox). No es una emulación: ejecuta procesos de verdad, sin permisos de root. Funciona con órdenes de línea (ls, cat, grep, ps, ping…); los programas de pantalla completa (vi, top) no, porque no hay pseudoterminal.
-- **Chat con IA local**: IA con visión que funciona en el propio móvil, sin Internet (solo se conecta una vez para descargar el modelo). Motor llama.cpp incluido en tres variantes de CPU ARM64; al arrancar se elige la más rápida que admite el procesador (i8mm → dotprod → ARMv8), se usan solo los núcleos rápidos y se recomienda el modelo según la RAM:
-  - menos de 4,5 GB: SmolVLM2 500M · 4,5–7 GB: SmolVLM2 2.2B · 7 GB o más: Gemma 3 4B.
+- **Chat con IA local**: IA con visión que funciona en el propio móvil, sin Internet (solo se conecta una vez para descargar el modelo). Lleva llama.cpp compilado para cada tipo de procesador:
+  - **Snapdragon**: NPU Hexagon y GPU Adreno (OpenCL), además de la CPU.
+  - **Tensor, Exynos, MediaTek…**: GPU por Vulkan (Mali, Xclipse…) y CPU.
+  - **CPU ARM64** en tres niveles: i8mm (Snapdragon 8 Gen 1+, Tensor G2+…), dotprod y ARMv8 básica.
+
+  La primera vez que se usa un modelo, la app **mide la velocidad real de cada motor disponible** en ese móvil y se queda con el más rápido (se puede repetir desde el menú). Usa solo los núcleos rápidos de la CPU, elige el modelo según la RAM (SmolVLM2 500M, SmolVLM2 2.2B o Gemma 3 4B) y en Snapdragon descarga la cuantización Q4_0, la optimizada para Adreno y Hexagon.
 
 ## Punto de cruz
 1. Toca **Elegir imagen** y escoge una foto o dibujo.
@@ -20,9 +24,12 @@ Colección de juegos y herramientas para Android:
 Cómo convierte la imagen (`PatternGenerator`): promedia bloques de píxeles para obtener la cuadrícula, agrupa colores con k-means en espacio CIELab, quita puntadas sueltas y ordena la paleta por uso. Las zonas transparentes quedan como tela sin bordar.
 
 ## Motor de IA (native/)
-`native/build-llama.sh` compila `llama-server` de llama.cpp con zig (musl, estático) para cada nivel de CPU y deja los binarios en `native/libs/arm64-v8a/libllama_*.so`, que `build.sh` mete en el APK. Se usa musl porque glibc moderno llama a `clone3`, que el filtro seccomp de Android prohíbe. Versión compilada: llama.cpp 0c1e570 (de llama-cpp-python 0.3.36).
+- `native/fetch-llama.sh` descarga llama.cpp (commit 0c1e570, el de llama-cpp-python 0.3.36).
+- `native/build-android.sh <variante>` lo compila con el NDK oficial: `cpu-armv8`, `cpu-dotprod`, `cpu-i8mm`, `vulkan` y `snapdragon` (este último dentro del contenedor `ghcr.io/snapdragon-toolchain/arm64-android`, que trae el SDK de Hexagon y OpenCL).
+- `.github/workflows/android.yml` compila todos los motores y el APK en GitHub Actions; el APK queda como artefacto de cada ejecución.
+- `native/build-llama.sh` es la alternativa sin NDK (zig + musl, solo CPU).
 
-GPU y NPU (Adreno/Hexagon en Snapdragon, Mali/TPU en Tensor) no están incluidas: necesitan el NDK oficial y SDKs de los fabricantes, que no se pueden descargar en el entorno donde se compiló.
+Los binarios van en `lib/arm64-v8a/libllama_*.so` dentro del APK (`extractNativeLibs=true`) y la app los ejecuta como procesos `llama-server` en 127.0.0.1.
 
 ## Licencias
 El emulador DOS incluye js-dos/DOSBox, con licencia GPL (ver `app/src/main/assets/dos/LICENSE-js-dos.txt`). Su código fuente está en https://github.com/caiiiycuk/js-dos (versión 6.22.60) y en el paquete npm `js-dos@6.22.60`.

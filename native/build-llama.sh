@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Compila el motor de IA local (llama-server de llama.cpp) para Android ARM64,
+# Alternativa sin NDK (la que se usó en el entorno de Claude): compila llama-server para Android ARM64
+# con zig/musl. En GitHub Actions se usa native/build-android.sh con el NDK oficial.
+#
 # en tres variantes según las instrucciones de la CPU:
 #   armv8   -> cualquier ARM64 (NEON)
 #   dotprod -> ARMv8.2 + dotprod + fp16 (Snapdragon 845+, Tensor, Exynos 9820+, Dimensity...)
@@ -42,8 +44,8 @@ TC
     -DLLAMA_BUILD_APP=OFF -DLLAMA_USE_PREBUILT_UI=OFF -DLLAMA_BUILD_UI=OFF \
     -DLLAMA_BUILD_SERVER=ON -DLLAMA_BUILD_TOOLS=ON
   ninja -C "$WORK/$name" llama-server
-  "$ZIG" objcopy --strip-all "$WORK/$name/bin/llama-server" "libs/arm64-v8a/libllama_$name.so" 2>/dev/null \
-    || cp "$WORK/$name/bin/llama-server" "libs/arm64-v8a/libllama_$name.so"
+  "$ZIG" objcopy --strip-all "$WORK/$name/bin/llama-server" "libs/arm64-v8a/libllama_cpu_$name.so" 2>/dev/null \
+    || cp "$WORK/$name/bin/llama-server" "libs/arm64-v8a/libllama_cpu_$name.so"
 }
 
 build armv8   generic

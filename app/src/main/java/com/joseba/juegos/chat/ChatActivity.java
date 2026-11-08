@@ -38,6 +38,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -142,31 +143,69 @@ public class ChatActivity extends Activity {
             askDownload();
             return;
         }
-        final TextView status = bubble("Arrancando el motor…", false, null);
+        final TextView status = bubble("Preparando el motor…", false, null);
         new Thread(new Runnable() {
             @Override public void run() {
-                try {
-                    engine.start(store.modelFile(model), store.mmprojFile(model), new LocalEngine.Listener() {
-                        @Override public void onStatus(final String t) {
-                            main.post(new Runnable() { @Override public void run() { status.setText(t); } });
-                        }
-                    });
-                    main.post(new Runnable() {
-                        @Override public void run() {
+                final String result = startBestEngine(new LocalEngine.Listener() {
+                    @Override public void onStatus(final String t) {
+                        main.post(new Runnable() { @Override public void run() { status.setText(t); } });
+                    }
+                });
+                main.post(new Runnable() {
+                    @Override public void run() {
+                        if (engine.isRunning()) {
                             engineReady = true;
                             setBusy(false);
-                            status.setText("Listo. Motor: llama.cpp en " + LocalEngine.describe(engine.variant())
-                                    + " con " + hw.fastCores + " hilos. Escríbeme o mándame una foto.");
-                            if (getActionBar() != null) getActionBar().setSubtitle(model.name);
+                            if (getActionBar() != null) getActionBar().setSubtitle(model.name + " · " + engine.current().label);
                         }
-                    });
-                } catch (final Exception e) {
-                    main.post(new Runnable() {
-                        @Override public void run() { status.setText("⚠ " + e.getMessage()); }
-                    });
-                }
+                        status.setText(result);
+                    }
+                });
             }
         }).start();
+    }
+
+    /**
+     * Arranca el motor más rápido para este móvil y este modelo. La primera vez mide todos los
+     * disponibles (NPU, GPU, CPU) y guarda el ganador; después arranca directamente ese.
+     */
+    private String startBestEngine(LocalEngine.Listener l) {
+        File m = store.modelFile(model), mm = store.mmprojFile(model);
+        List<EngineSpec> cands = engine.candidates();
+        if (cands.isEmpty()) return "⚠ Esta versión de la app no trae un motor para tu procesador (" + hw.abi + ").";
+        String key = "engine_" + model.id;
+        String saved = prefs.getString(key, null);
+        try {
+            for (EngineSpec s : cands) {
+                if (s.id.equals(saved) && engine.start(s, m, mm, l)) {
+                    return "Listo. Motor: " + s.label + " (el más rápido que se midió en tu móvil). "
+                            + "Escríbeme o mándame una foto.";
+                }
+            }
+            StringBuilder report = new StringBuilder("Medición de motores en tu móvil (tokens por segundo):\n");
+            EngineSpec best = null;
+            double bestTps = 0;
+            boolean cpuDone = false;
+            for (EngineSpec s : cands) {
+                if (!s.accelerator && cpuDone) continue;   // basta con la mejor variante de CPU que funcione
+                l.onStatus("Midiendo " + s.label + "…");
+                double tps = -1;
+                if (engine.start(s, m, mm, l)) {
+                    tps = engine.benchmark();
+                    engine.stop();
+                }
+                report.append("• ").append(s.label).append(": ")
+                        .append(tps > 0 ? String.format(java.util.Locale.ROOT, "%.1f", tps) : "no funciona aquí").append('\n');
+                if (tps > 0 && !s.accelerator) cpuDone = true;
+                if (tps > bestTps) { bestTps = tps; best = s; }
+            }
+            if (best == null) return "⚠ Ningún motor pudo arrancar. Menú → Información del motor para ver el error.\n\n" + report;
+            prefs.edit().putString(key, best.id).apply();
+            if (!engine.start(best, m, mm, l)) return "⚠ El motor elegido dejó de arrancar.\n\n" + report;
+            return report + "\nUso " + best.label + ". Escríbeme o mándame una foto.";
+        } catch (Exception e) {
+            return "⚠ " + e.getMessage();
+        }
     }
 
     private void askDownload() {
@@ -201,7 +240,7 @@ public class ChatActivity extends Activity {
             @Override public void run() {
                 String err = null;
                 try {
-                    store.download(m, new ModelStore.Progress() {
+                    store.download(m, hw.isSnapdragon(), new ModelStore.Progress() {
                         @Override public void onProgress(final String what, final long done, final long total) {
                             main.post(new Runnable() {
                                 @Override public void run() {
@@ -511,9 +550,9 @@ public class ChatActivity extends Activity {
     private void showEngineInfo() {
         StringBuilder sb = new StringBuilder();
         sb.append("Hardware: ").append(hw.summary()).append("\n\n");
-        sb.append("Motor: llama.cpp ").append(engine.isRunning() ? "en " + LocalEngine.describe(engine.variant()) : "(parado)").append("\n");
-        sb.append("Hilos: ").append(hw.fastCores).append(" (solo núcleos rápidos)\n");
-        sb.append("Variantes posibles: ").append(hw.engineCandidates()).append("\n");
+        sb.append("Motor: llama.cpp ").append(engine.isRunning() ? "en " + engine.current().label : "(parado)").append("\n");
+        sb.append("Hilos de CPU: ").append(hw.fastCores).append(" (solo núcleos rápidos)\n");
+        sb.append("Motores disponibles: ").append(engine.candidates()).append("\n");
         sb.append("Modelo: ").append(model.name).append(store.isReady(model) ? " (descargado)" : " (sin descargar)").append("\n\n");
         sb.append("Últimas líneas del motor:\n").append(engine.tail(15));
         TextView tv = new TextView(this);
@@ -554,6 +593,7 @@ public class ChatActivity extends Activity {
         menu.add(0, 3, 0, "Información del motor");
         menu.add(0, 4, 0, "Reiniciar motor");
         menu.add(0, 5, 0, "Borrar modelo descargado");
+        menu.add(0, 6, 0, "Volver a medir motores");
         return true;
     }
 
@@ -570,6 +610,13 @@ public class ChatActivity extends Activity {
         if (item.getItemId() == 3) { showEngineInfo(); return true; }
         if (item.getItemId() == 4) { engine.stop(); prepare(); return true; }
         if (item.getItemId() == 5) { confirmDelete(); return true; }
+        if (item.getItemId() == 6) {
+            if (busy && engineReady) return true;
+            engine.stop();
+            prefs.edit().remove("engine_" + model.id).apply();
+            prepare();
+            return true;
+        }
         return super.onOptionsItemSelected(item);
     }
 }
