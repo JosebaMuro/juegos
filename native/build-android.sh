@@ -29,6 +29,7 @@ case "$V" in
     cmake -S "$SRC" -B "$B" "${COMMON[@]}" -DANDROID_PLATFORM=android-28 -DGGML_CPU_ARM_ARCH=armv8.2-a+dotprod+fp16 \
       -DGGML_VULKAN=ON -DVulkan_GLSLC_EXECUTABLE="$NDK/shader-tools/linux-x86_64/glslc" \
       -DVulkan_INCLUDE_DIR="${VULKAN_HEADERS:?}/include" \
+      -DSPIRV-Headers_DIR="${SPIRV_HEADERS_DIR:?}" \
       -DCMAKE_CXX_FLAGS="-I${VULKAN_HEADERS}/include" ;;
   snapdragon)
     # Preajuste oficial de llama.cpp para Snapdragon (OpenCL + Hexagon), pero enlazado estático.

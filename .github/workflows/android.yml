@@ -25,6 +25,11 @@ jobs:
         run: |
           git clone --depth 1 --branch v1.4.321 https://github.com/KhronosGroup/Vulkan-Headers native/work/Vulkan-Headers
           echo "VULKAN_HEADERS=$PWD/native/work/Vulkan-Headers" >> "$GITHUB_ENV"
+          git clone --depth 1 --branch vulkan-sdk-1.4.321.0 https://github.com/KhronosGroup/SPIRV-Headers native/work/SPIRV-Headers
+          cmake -S native/work/SPIRV-Headers -B native/work/SPIRV-Headers/build -DSPIRV_HEADERS_ENABLE_TESTS=OFF \
+            -DCMAKE_INSTALL_PREFIX="$PWD/native/work/spirv"
+          cmake --install native/work/SPIRV-Headers/build
+          echo "SPIRV_HEADERS_DIR=$PWD/native/work/spirv/share/cmake/SPIRV-Headers" >> "$GITHUB_ENV"
       - name: Compilar
         run: native/build-android.sh ${{ matrix.variant }}
       - uses: actions/upload-artifact@v4
