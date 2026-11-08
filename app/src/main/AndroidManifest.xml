@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- El paquete, la versión y los SDK se definen en app/build.gradle (y en build.sh). -->
+
+    <!-- Solo para descargar una vez el modelo de IA local; la IA funciona sin conexión. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="true"
+        android:extractNativeLibs="true"
+        android:theme="@android:style/Theme.Material.Light.DarkActionBar">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".puntocruz.PuntoCruzSetupActivity"
+            android:label="@string/puntocruz_title"
+            android:exported="false" />
+
+        <activity
+            android:name=".puntocruz.PuntoCruzActivity"
+            android:label="@string/puntocruz_title"
+            android:exported="false" />
+        <activity
+            android:name=".bloques.BloquesActivity"
+            android:label="Bloques"
+            android:screenOrientation="portrait"
+            android:exported="false" />
+
+        <activity
+            android:name=".terminal.TerminalActivity"
+            android:label="Terminal Linux"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|keyboard"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="false" />
+
+        <activity
+            android:name=".dos.DosActivity"
+            android:label="DOS"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|keyboard"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="false" />
+
+        <activity
+            android:name=".chat.ChatActivity"
+            android:label="Chat con IA"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|keyboard"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="false" />
+
+        <provider
+            android:name=".chat.PhotoProvider"
+            android:authorities="com.joseba.juegos.fotos"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+    </application>
+</manifest>

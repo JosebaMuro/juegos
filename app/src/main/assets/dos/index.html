@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>DOS</title>
+<script src="js-dos.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #111; color: #ddd;
+    font-family: sans-serif; overflow: hidden; -webkit-user-select: none; user-select: none; }
+  #wrap { display: flex; flex-direction: column; height: 100%; }
+  #screen { position: relative; width: 100%; aspect-ratio: 4 / 3; max-height: 55vh; background: #000; flex: none; }
+  #screen .dosbox-container { width: 100%; height: 100%; }
+  #screen canvas { width: 100% !important; height: 100% !important; object-fit: contain; image-rendering: pixelated; }
+  #status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #9f9; font-family: monospace; font-size: 14px; text-align: center; padding: 12px; pointer-events: none; }
+  #kbd { flex: 1; display: flex; flex-direction: column; gap: 4px; padding: 4px; box-sizing: border-box; min-height: 0; }
+  .row { display: flex; gap: 3px; flex: 1; min-height: 0; }
+  .k { flex: 1; display: flex; align-items: center; justify-content: center; background: #3a3a3a; color: #eee;
+    border-radius: 5px; font-size: 13px; border-bottom: 2px solid #222; touch-action: none; min-width: 0; }
+  .k.down { background: #6b8e23; }
+  .k.mod.on { background: #b8860b; color: #000; }
+  .k.w15 { flex: 1.5; } .k.w2 { flex: 2; } .k.w6 { flex: 6; }
+  .k.fn { font-size: 11px; background: #2b2b40; }
+  #soft { position: absolute; left: -1000px; top: 0; width: 10px; height: 10px; opacity: 0; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="screen"><canvas id="jsdos"></canvas><div id="status">Arrancando DOS…</div></div>
+  <div id="kbd"></div>
+</div>
+<input id="soft" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+<script>
+(function () {
+  var statusEl = document.getElementById("status");
+  function status(t) { statusEl.textContent = t || ""; statusEl.style.display = t ? "flex" : "none"; }
+
+  var ci = null;
+  var mods = { 16: false, 17: false, 18: false };   // Shift, Ctrl, Alt (bloqueo temporal)
+
+  function press(code, down) { if (ci) ci.simulateKeyEvent(code, down); }
+  // DOSBox lee el teclado una vez por fotograma: hay que separar Shift y la tecla en el tiempo.
+  var STEP = 45;
+  function tap(code, withShift, done) {
+    if (!ci) { if (done) done(); return; }
+    var seq = [];
+    if (withShift) seq.push([16, true]);
+    seq.push([code, true], [code, false]);
+    if (withShift) seq.push([16, false]);
+    (function next(i) {
+      if (i >= seq.length) { if (done) setTimeout(done, STEP); return; }
+      press(seq[i][0], seq[i][1]);
+      setTimeout(function () { next(i + 1); }, STEP);
+    })(0);
+  }
+  function releaseMods() {
+    for (var m in mods) if (mods[m]) { mods[m] = false; press(+m, false); }
+    var els = document.querySelectorAll(".k.mod");
+    for (var i = 0; i < els.length; i++) els[i].classList.remove("on");
+  }
+
+  // ---- Teclado en pantalla (distribución US, la que usa DOSBox por defecto) ----
+  var F = function (n) { return ["F" + n, 111 + n, "fn"]; };
+  var rows = [
+    [["Esc", 27, "fn"], F(1), F(2), F(3), F(4), F(5), F(6), F(7), F(8), F(9), F(10), ["Abc", "soft", "fn w15"]],
+    [["1", 49], ["2", 50], ["3", 51], ["4", 52], ["5", 53], ["6", 54], ["7", 55], ["8", 56], ["9", 57], ["0", 48], ["-", 189], ["=", 187], ["⌫", 8, "w15"]],
+    [["Tab", 9, "w15"], ["Q", 81], ["W", 87], ["E", 69], ["R", 82], ["T", 84], ["Y", 89], ["U", 85], ["I", 73], ["O", 79], ["P", 80], ["[", 219], ["]", 221]],
+    [["\\", 220], ["A", 65], ["S", 83], ["D", 68], ["F", 70], ["G", 71], ["H", 72], ["J", 74], ["K", 75], ["L", 76], [";", 186], ["'", 222], ["Intro", 13, "w2"]],
+    [["Shift", 16, "mod w2"], ["Z", 90], ["X", 88], ["C", 67], ["V", 86], ["B", 66], ["N", 78], ["M", 77], [",", 188], [".", 190], ["/", 191], ["↑", 38]],
+    [["Ctrl", 17, "mod w15"], ["Alt", 18, "mod w15"], ["`", 192], ["Espacio", 32, "w6"], ["Supr", 46, "fn"], ["←", 37], ["↓", 40], ["→", 39]]
+  ];
+  var kbd = document.getElementById("kbd");
+  rows.forEach(function (r) {
+    var row = document.createElement("div");
+    row.className = "row";
+    r.forEach(function (k) {
+      var el = document.createElement("div");
+      el.className = "k " + (k[2] || "");
+      el.textContent = k[0];
+      var code = k[1];
+      el.addEventListener("pointerdown", function (e) {
+        e.preventDefault();
+        if (code === "soft") { openSoft(); return; }
+        if (code in mods) {
+          mods[code] = !mods[code];
+          el.classList.toggle("on", mods[code]);
+          press(code, mods[code]);
+          return;
+        }
+        el.classList.add("down");
+        press(code, true);
+      });
+      var up = function (e) {
+        if (code === "soft" || code in mods) return;
+        if (!el.classList.contains("down")) return;
+        el.classList.remove("down");
+        press(code, false);
+        releaseMods();
+      };
+      el.addEventListener("pointerup", up);
+      el.addEventListener("pointerleave", up);
+      el.addEventListener("pointercancel", up);
+      row.appendChild(el);
+    });
+    kbd.appendChild(row);
+  });
+
+  // ---- Teclado del sistema (Android): se traducen los caracteres a teclas ----
+  var soft = document.getElementById("soft");
+  function openSoft() { soft.value = ""; soft.focus(); if (window.Android && Android.showKeyboard) Android.showKeyboard(); }
+  var plain = { " ": 32, "-": 189, "=": 187, "[": 219, "]": 221, "\\": 220, ";": 186, "'": 222, ",": 188, ".": 190, "/": 191, "`": 192 };
+  var shifted = { "!": 49, "@": 50, "#": 51, "$": 52, "%": 53, "^": 54, "&": 55, "*": 56, "(": 57, ")": 48,
+    "_": 189, "+": 187, "{": 219, "}": 221, "|": 220, ":": 186, "\"": 222, "<": 188, ">": 190, "?": 191, "~": 192 };
+  function typeChar(ch, done) {
+    if (ch === "\n") return tap(13, false, done);
+    if (/[a-z]/.test(ch)) return tap(ch.toUpperCase().charCodeAt(0), false, done);
+    if (/[A-Z]/.test(ch)) return tap(ch.charCodeAt(0), true, done);
+    if (/[0-9]/.test(ch)) return tap(ch.charCodeAt(0), false, done);
+    if (ch in plain) return tap(plain[ch], false, done);
+    if (ch in shifted) return tap(shifted[ch], true, done);
+    done();
+  }
+  // Cola: cada pulsación espera a que termine la anterior.
+  var queue = [], busy = false;
+  function pump() {
+    if (busy || !queue.length) return;
+    busy = true;
+    queue.shift()(function () { busy = false; pump(); });
+  }
+  function enqueue(fn) { queue.push(fn); pump(); }
+  soft.addEventListener("input", function (e) {
+    if (e.inputType === "deleteContentBackward") { enqueue(function (d) { tap(8, false, d); }); }
+    else if (e.data) { for (var i = 0; i < e.data.length; i++) (function (c) { enqueue(function (d) { typeChar(c, d); }); })(e.data[i]); }
+    soft.value = " ";  // mantener algo para que el borrado siga generando eventos
+  });
+  // Que DOSBox no reciba directamente las teclas del campo oculto (se traducen arriba).
+  ["keyup", "keypress"].forEach(function (t) { soft.addEventListener(t, function (e) { e.stopPropagation(); }); });
+  soft.addEventListener("keydown", function (e) {
+    e.stopPropagation();
+    if (e.key === "Enter" || e.keyCode === 13) { e.preventDefault(); enqueue(function (d) { tap(13, false, d); }); }
+    else if (e.key === "Backspace" && soft.value.length === 0) { e.preventDefault(); enqueue(function (d) { tap(8, false, d); }); }
+  });
+
+  // ---- Arranque ----
+  function importFiles(fs) {
+    // La app Android deja aquí los archivos que el usuario ha importado.
+    if (!window.Android || !Android.getImports) return Promise.resolve();
+    var list = JSON.parse(Android.getImports() || "[]");
+    if (!list.length) return Promise.resolve();
+    status("Copiando " + list.length + " archivo(s) a C:\\ …");
+    var FS = fs.fs;
+    return list.reduce(function (p, item) {
+      return p.then(function () {
+        return fetch(item.url).then(function (r) { return r.arrayBuffer(); }).then(function (buf) {
+          var path = "/disco/" + item.path;
+          var dir = path.substring(0, path.lastIndexOf("/"));
+          try { FS.mkdirTree(dir); } catch (e) {}
+          try { FS.unlink(path); } catch (e) {}
+          FS.writeFile(path, new Uint8Array(buf));
+        });
+      });
+    }, Promise.resolve()).then(function () {
+      return new Promise(function (res) { FS.syncfs(false, function () { res(); }); });
+    }).then(function () { Android.importsDone(); });
+  }
+
+  Dos(document.getElementById("jsdos"), {
+    wdosboxUrl: "wdosbox.js",
+    cycles: "auto",
+    autolock: false,
+    onprogress: function (stage, total, loaded) { status(stage + "…"); },
+    onerror: function (m) { status("Error: " + m); }
+  }).ready(function (fs, main) {
+    window.dosfs = fs;
+    // C: vive en /disco, que se guarda en IndexedDB y persiste entre sesiones.
+    fs.extract("inicio.zip", "/disco").then(function () {
+      return importFiles(fs);
+    }).then(function () {
+      // js-dos monta C: en el directorio actual; lo remontamos sobre /disco (persistente).
+      return main(["-c", "mount -u c", "-c", "mount c /disco", "-c", "c:", "-c", "cls", "-c", "type leeme.txt"]);
+    }).then(function (c) {
+      ci = c;
+      window.ci = c;
+      status("");
+    }).catch(function (e) { status("Error: " + e); });
+  });
+})();
+</script>
+</body>
+</html>
