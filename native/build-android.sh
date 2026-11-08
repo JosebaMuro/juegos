@@ -42,12 +42,16 @@ case "$V" in
       -DGGML_HEXAGON=ON ;;
   *) echo "variante desconocida: $V"; exit 1 ;;
 esac
-cmake --build "$B" --target llama-server -j"$(nproc)"
+TARGETS=(llama-server)
+# Las bibliotecas del DSP Hexagon son proyectos externos que llama-server no arrastra.
+[ "$V" = snapdragon ] && TARGETS+=(htp-v73 htp-v75 htp-v79 htp-v81)
+cmake --build "$B" --target "${TARGETS[@]}" -j"$(nproc)"
 STRIP="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
 NAME="${V//-/_}"
 "$STRIP" -o "$OUT/libllama_$NAME.so" "$B/bin/llama-server"
 if [ "$V" = snapdragon ]; then
   # Bibliotecas que se cargan en el DSP Hexagon (una por generación de NPU).
   find "$B" -name 'libggml-htp-v*.so' -exec cp {} "$OUT/" \;
+  ls "$OUT"/libggml-htp-v*.so >/dev/null || { echo 'faltan libggml-htp'; exit 1; }
 fi
 ls -la "$OUT"
