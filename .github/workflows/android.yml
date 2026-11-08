@@ -1,0 +1,120 @@
+name: APK
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  motor:
+    name: Motor ${{ matrix.variant }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [cpu-armv8, cpu-dotprod, cpu-i8mm, vulkan]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Herramientas
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ninja-build
+      - name: Código de llama.cpp
+        run: native/fetch-llama.sh
+      - name: Cabeceras de Vulkan
+        if: matrix.variant == 'vulkan'
+        run: |
+          git clone --depth 1 --branch v1.4.321 https://github.com/KhronosGroup/Vulkan-Headers native/work/Vulkan-Headers
+          echo "VULKAN_HEADERS=$PWD/native/work/Vulkan-Headers" >> "$GITHUB_ENV"
+          git clone --depth 1 --branch vulkan-sdk-1.4.321.0 https://github.com/KhronosGroup/SPIRV-Headers native/work/SPIRV-Headers
+          cmake -S native/work/SPIRV-Headers -B native/work/SPIRV-Headers/build -DSPIRV_HEADERS_ENABLE_TESTS=OFF \
+            -DCMAKE_INSTALL_PREFIX="$PWD/native/work/spirv"
+          cmake --install native/work/SPIRV-Headers/build
+          echo "SPIRV_HEADERS_DIR=$PWD/native/work/spirv/share/cmake/SPIRV-Headers" >> "$GITHUB_ENV"
+      - name: Compilar
+        run: native/build-android.sh ${{ matrix.variant }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: motor-${{ matrix.variant }}
+          path: native/libs/arm64-v8a/
+
+  motor-snapdragon:
+    name: Motor snapdragon (Adreno + Hexagon)
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/snapdragon-toolchain/arm64-android:v0.7
+      options: --user root
+    steps:
+      - uses: actions/checkout@v4
+      - name: Código de llama.cpp
+        run: native/fetch-llama.sh
+      - name: Compilar
+        run: native/build-android.sh snapdragon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: motor-snapdragon
+          path: native/libs/arm64-v8a/
+
+  apk:
+    name: APK
+    needs: [motor, motor-snapdragon]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Herramientas de Android (sin Gradle)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq android-sdk-platform-23 aapt zipalign apksigner dalvik-exchange
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: motor-*
+          path: native/libs/arm64-v8a
+          merge-multiple: true
+      - name: Clave de firma
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            mkdir -p keystore && echo "$KEYSTORE_B64" | base64 -d > keystore/juegos.jks
+          else
+            echo "::warning::Sin secreto KEYSTORE_B64: el APK se firma con una clave nueva y no se instalará encima de versiones anteriores."
+          fi
+      - name: Compilar APK
+        env:
+          KS_PASS: ${{ secrets.KEYSTORE_PASS || 'juegos123' }}
+        run: |
+          ls -la native/libs/arm64-v8a
+          ./build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: JuegosReunidos-apk
+          path: build/JuegosReunidos.apk
+
+  release:
+    name: Publicar release
+    # Al integrar en main (o lanzándolo a mano), si todo se ha compilado bien.
+    # La etiqueta sale de --version-name en build.sh; si ese release ya existe, no hace nada.
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    needs: [motor, motor-snapdragon, apk]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: JuegosReunidos-apk
+          path: dist
+      - name: Crear release con el APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v$(grep -o -- '--version-name [^ ]*' build.sh | cut -d' ' -f2)"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::notice::El release $TAG ya existe; sube --version-name en build.sh para publicar otro."
+            exit 0
+          fi
+          mv dist/JuegosReunidos.apk "dist/JuegosReunidos-$TAG.apk"
+          gh release create "$TAG" "dist/JuegosReunidos-$TAG.apk" --target "$GITHUB_SHA" \
+            --title "Juegos Reunidos $TAG" \
+            --notes "APK para Android arm64 (Android 5.0 o superior). Incluye IA local con motores CPU, GPU Vulkan, GPU Adreno y NPU Hexagon; la app mide y elige el más rápido."

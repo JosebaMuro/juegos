@@ -19,7 +19,7 @@ echo "1/5 Recursos (aapt)"
 sed 's|<manifest |<manifest package="com.joseba.juegos" |' "$SRC/AndroidManifest.xml" > "$OUT/AndroidManifest.xml"
 aapt package -f -m -J "$OUT/gen" -M "$OUT/AndroidManifest.xml" -S "$SRC/res" -A "$SRC/assets" \
   -I "$ANDROID_JAR" -F "$OUT/app.unaligned.apk" \
-  --min-sdk-version 21 --target-sdk-version 34 --version-code 3 --version-name 3.0
+  --min-sdk-version 21 --target-sdk-version 34 --version-code 4 --version-name 4.0
 
 echo "2/5 Java (javac)"
 find "$SRC/java" "$OUT/gen" -name '*.java' > "$OUT/sources.txt"
