@@ -1,0 +1,274 @@
+{
+  "_comentario": "Juegos de licencia libre que se incluyen en la app. libres/preparar.py descarga cada uno de su repositorio (commit fijo), lo empaqueta en assets y copia sus licencias. La app lee este mismo archivo desde assets/libres/catalogo.json.",
+  "juegos": [
+    {
+      "id": "2048", "tipo": "web", "titulo": "2048",
+      "descripcion": "Desliza las fichas y junta números iguales hasta llegar a 2048.",
+      "controles": "Desliza el dedo en cualquier dirección.",
+      "autor": "Gabriele Cirulli", "licencia": "MIT",
+      "web": "https://play2048.co", "repo": "https://github.com/gabrielecirulli/2048",
+      "commit": "478b6ec346e3787f589e4af751378d06ded4cbbc",
+      "inicio": "index.html",
+      "incluir": ["index.html", "favicon.ico", "js", "style", "meta", "LICENSE.txt"]
+    },
+    {
+      "id": "hextris", "tipo": "web", "titulo": "Hextris",
+      "descripcion": "Gira el hexágono para que los bloques de colores que caen formen grupos de tres.",
+      "controles": "Toca la mitad izquierda o derecha de la pantalla para girar.",
+      "autor": "Logan Engstrom, Garrett Finucane, Noah Moroze, Michael Yang", "licencia": "GPL-3.0",
+      "web": "https://hextris.io", "repo": "https://github.com/Hextris/hextris",
+      "commit": "3f4847dc8fd7dab3d1c87e6324b9159d92fbd396",
+      "inicio": "index.html",
+      "incluir": ["index.html", "favicon.ico", "images", "js", "style", "vendor", "LICENSE.md"]
+    },
+    {
+      "id": "adarkroom", "tipo": "web", "titulo": "Una habitación oscura",
+      "descripcion": "Aventura de texto minimalista (A Dark Room): aviva el fuego, reúne aldeanos y descubre qué hay fuera. En español.",
+      "controles": "Toca los botones. Se guarda sola. Pellizca para hacer zoom.",
+      "autor": "Doublespeak Games (Michael Townsend y Amir Rajan) y colaboradores", "licencia": "MPL-2.0",
+      "web": "https://adarkroom.doublespeakgames.com", "repo": "https://github.com/doublespeakgames/adarkroom",
+      "commit": "1fada4620b6c66bd07bf15a3f1eb8223df8bc1d7",
+      "inicio": "index.html?lang=es&ignorebrowser=true",
+      "ancho": true,
+      "incluir": ["index.html", "favicon.ico", "audio", "css", "img", "lang/es", "lang/langs.js", "lang/main.css", "lib", "script", "LICENSE.md"]
+    },
+    {
+      "id": "torre", "tipo": "web", "titulo": "Construye la torre",
+      "descripcion": "Suelta cada bloque en el momento justo para levantar la torre más alta posible.",
+      "controles": "Toca la pantalla para soltar el bloque.",
+      "autor": "BMQB, Inc. (iamkun)", "licencia": "MIT",
+      "web": "https://github.com/iamkun/tower_game", "repo": "https://github.com/iamkun/tower_game",
+      "commit": "c6fa84afe179b661fa71cf7cc8788d0c47ca2875",
+      "inicio": "index.html",
+      "incluir": ["index.html", "dist", "assets", "LICENSE"],
+      "quitar": ["assets/wenxue.eot", "assets/wenxue.woff", "assets/wenxue.ttf", "assets/wenxue.svg"]
+    },
+
+    {
+      "id": "nethack", "tipo": "dos", "titulo": "NetHack",
+      "descripcion": "El gran juego de exploración de mazmorras por turnos: baja niveles, encuentra el Amuleto de Yendor y vuelve.",
+      "controles": "Flechas para moverte; ? muestra la ayuda. Toca ⌨ para el teclado completo.",
+      "autor": "NetHack DevTeam", "licencia": "NetHack General Public License",
+      "web": "https://www.nethack.org", "repo": "https://gitlab.com/FreeDOS/games/nethack",
+      "commit": "7c20543b16f1551f56f57ec66c5c77556d26b22f",
+      "carpeta": "GAMES/NETHACK", "exe": "NETHACK"
+    },
+    {
+      "id": "lincrawl", "tipo": "dos", "titulo": "Linley's Dungeon Crawl",
+      "descripcion": "Roguelike clásico: elige raza y clase y adéntrate en el Dungeon en busca del Orbe de Zot.",
+      "controles": "Flechas para moverte; ? para la ayuda.",
+      "autor": "Linley Henzell", "licencia": "Crawl General Public License",
+      "web": "http://dungeoncrawl.org", "repo": "https://gitlab.com/FreeDOS/games/lincrawl",
+      "commit": "1d0eb4970ba22a9039acb9ee4a16d1569907bcdb",
+      "carpeta": "GAMES/LINCRAWL", "exe": "CRAWL"
+    },
+    {
+      "id": "ivan", "tipo": "dos", "titulo": "IVAN",
+      "descripcion": "Iter Vehemens ad Necem: roguelike gráfico con mucho humor negro y combate detallado.",
+      "controles": "Flechas para moverte; F1 muestra los comandos.",
+      "autor": "Timo Kiviluoto y el equipo de IVAN", "licencia": "GPL-2.0",
+      "web": "http://ivan.sourceforge.net", "repo": "https://gitlab.com/FreeDOS/games/ivan",
+      "commit": "622cb51514c2aeaa23bcdbd4c2a7744435758b0e",
+      "carpeta": "GAMES/IVAN", "exe": "IVAN"
+    },
+    {
+      "id": "noudar", "tipo": "dos", "titulo": "Dungeons of Noudar 3D",
+      "descripcion": "Mazmorra en primera persona al estilo de los RPG de los 90.",
+      "controles": "Flechas para moverte y girar; Ctrl/Alt para usar y cambiar de objeto.",
+      "autor": "Daniel Monteiro", "licencia": "BSD-2-Clause",
+      "web": "https://montyontherun.itch.io/dungeons-of-noudar-3d", "repo": "https://gitlab.com/FreeDOS/games/noudar",
+      "commit": "4d8c73e644707a0464260e3e024dfa86b869d71f",
+      "carpeta": "GAMES/NOUDAR", "exe": "NOUDAR"
+    },
+    {
+      "id": "mistral", "tipo": "dos", "titulo": "The Mistral Report",
+      "descripcion": "RPG retro de espionaje por turnos: infíltrate y descubre el informe Mistral.",
+      "controles": "Flechas para moverte; Intro y Espacio para actuar.",
+      "autor": "Daniel Monteiro", "licencia": "GPL-3.0",
+      "web": "https://montyontherun.itch.io/the-mistral-report", "repo": "https://gitlab.com/FreeDOS/games/mistral",
+      "commit": "08fb0f061eb4ceeec02196193d72b648f58ca245",
+      "carpeta": "GAMES/MISTRAL", "exe": "GAME"
+    },
+    {
+      "id": "kraptor", "tipo": "dos", "titulo": "Kraptor",
+      "descripcion": "Matamarcianos vertical con 10 niveles, del argentino Kronoman.",
+      "controles": "Flechas para moverte, Ctrl dispara, Espacio cambia de arma.",
+      "autor": "Kronoman", "licencia": "MIT",
+      "web": "http://kraptor.sf.net", "repo": "https://gitlab.com/FreeDOS/games/kraptor",
+      "commit": "c26f965cc37c0e9b0ed76e166abcf7a6235ef01b",
+      "carpeta": "GAMES/KRAPTOR", "exe": "KRAPTOR", "dpmi": true
+    },
+    {
+      "id": "wing", "tipo": "dos", "titulo": "Wing",
+      "descripcion": "Matamarcianos de oleadas: esquiva y destruye las formaciones enemigas.",
+      "controles": "Flechas para moverte, Espacio o Ctrl para disparar.",
+      "autor": "Adam Hiatt y Anil Shrestha", "licencia": "GPL-2.0",
+      "web": "http://wing.sourceforge.net", "repo": "https://gitlab.com/FreeDOS/games/wing",
+      "commit": "484a187bfb85c60a1e368c5d8018b40ebed850a7",
+      "carpeta": "GAMES/WING", "exe": "WING", "dpmi": true
+    },
+    {
+      "id": "dosdef", "tipo": "dos", "titulo": "DOS Defender",
+      "descripcion": "Shooter de naves en modo real hecho para la Ludum Dare 31.",
+      "controles": "Flechas para moverte; se apunta y dispara con el ratón (toca la pantalla).",
+      "autor": "Christopher Wellons (skeeto)", "licencia": "Unlicense",
+      "web": "https://github.com/skeeto/dosdefender-ld31", "repo": "https://gitlab.com/FreeDOS/games/dosdef",
+      "commit": "92e0b054b7cce861d77808d88ab5686d044d128f",
+      "carpeta": "GAMES/DOSDEF", "exe": "DOSDEF"
+    },
+    {
+      "id": "ev4de", "tipo": "dos", "titulo": "EV4DE",
+      "descripcion": "Pilota una nave y esquiva asteroides. Tres modos de juego y naves desbloqueables.",
+      "controles": "Flechas para moverte; Intro para elegir.",
+      "autor": "OokiePigster", "licencia": "GPL-3.0",
+      "web": "https://ookiepigster.itch.io/ev4de", "repo": "https://gitlab.com/FreeDOS/games/ev4de",
+      "commit": "4be2550586f004f54d157f32a74cc746936ba766",
+      "carpeta": "GAMES/EV4DE", "exe": "EV4DE"
+    },
+    {
+      "id": "liquiwar", "tipo": "dos", "titulo": "Liquid War",
+      "descripcion": "Guerra de líquidos: guía a tu ejército de partículas para envolver al enemigo. Contra la máquina o a dobles.",
+      "controles": "Flechas para mover tu cursor; Intro en los menús.",
+      "autor": "Christian Mauduit (U-Foot)", "licencia": "GPL-2.0",
+      "web": "https://ufoot.org/liquidwar", "repo": "https://gitlab.com/FreeDOS/games/liquiwar",
+      "commit": "786c64ffbedd768941179c912a4bbd176fef8a15",
+      "carpeta": "GAMES/LIQUIWAR", "exe": "LWDOS"
+    },
+    {
+      "id": "vertigo", "tipo": "dos", "titulo": "Vertigo",
+      "descripcion": "Simulador de vuelo centrado en un modelo de vuelo realista.",
+      "controles": "Flechas para los mandos; consulta el menú del juego para el resto.",
+      "autor": "Anton Norup Sørensen", "licencia": "GPL-2.0",
+      "web": "http://stjerneskud.info/vertigo", "repo": "https://gitlab.com/FreeDOS/games/vertigo",
+      "commit": "02bbfd9de9017a3491fc7d0f50c418d2ccc1b3c9",
+      "carpeta": "GAMES/VERTIGO", "exe": "VERTIGO"
+    },
+    {
+      "id": "mirmagic", "tipo": "dos", "titulo": "Mirror Magic",
+      "descripcion": "Rompecabezas de láser: gira los espejos para llevar el rayo a su destino.",
+      "controles": "Se juega con el ratón: toca la pantalla para mover el puntero y hacer clic.",
+      "autor": "Holger Schemel (Artsoft Entertainment)", "licencia": "GPL-2.0",
+      "web": "https://www.artsoft.org/mirrormagic/", "repo": "https://gitlab.com/FreeDOS/games/mirmagic",
+      "commit": "7b0bd9a487dc460d98351f2e49680d6488827472",
+      "carpeta": "GAMES/MIRMAGIC", "exe": "MIRROR"
+    },
+    {
+      "id": "fmines", "tipo": "dos", "titulo": "FancyMines",
+      "descripcion": "Buscaminas con fotos de insectos que se descubren al limpiar el tablero.",
+      "controles": "Se juega con el ratón: toca para destapar casillas.",
+      "autor": "Mateusz Viste", "licencia": "GPL-3.0",
+      "web": "http://mateusz.viste.fr/attic/fmines/", "repo": "https://gitlab.com/FreeDOS/games/fmines",
+      "commit": "b3e16482401237353057307020cc72071dbf5632",
+      "carpeta": "GAMES/FMINES", "exe": "FMINES", "dpmi": true,
+      "quitar": ["ANIMALS"], "archivos": {"FMINES.CFG": "INSECTS\r\n 0\r\n"}
+    },
+    {
+      "id": "bolitare", "tipo": "dos", "titulo": "Bolitaire",
+      "descripcion": "Solitario de cartas FreeCell.",
+      "controles": "Se juega con el ratón: toca para coger y dejar cartas.",
+      "autor": "Yogesh", "licencia": "GPL-2.0",
+      "web": "https://gitlab.com/FreeDOS/games/bolitare", "repo": "https://gitlab.com/FreeDOS/games/bolitare",
+      "commit": "a80d692dc660ebf1d631b9de8bdcdfb87e0f1203",
+      "carpeta": "GAMES/BOLITARE", "exe": "BOLITARE", "dpmi": true
+    },
+    {
+      "id": "sudoku86", "tipo": "dos", "titulo": "Sudoku86",
+      "descripcion": "Sudoku con cientos de tableros, para los PC más antiguos.",
+      "controles": "Flechas para moverte, números para rellenar.",
+      "autor": "Mateusz Viste", "licencia": "BSD-2-Clause",
+      "web": "http://sudoku86.sourceforge.net", "repo": "https://gitlab.com/FreeDOS/games/sudoku86",
+      "commit": "89e81705449c02daf251450810fbbf53f5d945e6",
+      "carpeta": "GAMES/SUDOKU86", "exe": "SUDOKU86"
+    },
+    {
+      "id": "gnuchess", "tipo": "dos", "titulo": "GNU Chess",
+      "descripcion": "Ajedrez contra el ordenador en modo texto.",
+      "controles": "Escribe las jugadas con el teclado (por ejemplo e2e4) y pulsa Intro.",
+      "autor": "Stuart Cracraft, John Stanback y la Free Software Foundation", "licencia": "GPL-2.0",
+      "web": "https://www.gnu.org/software/chess/", "repo": "https://gitlab.com/FreeDOS/games/gnuchess",
+      "commit": "123c28341207612e09fc9b4301e5a21ecd00350d",
+      "carpeta": "GAMES/GNUCHESS", "exe": "GNUCHESS"
+    },
+    {
+      "id": "senet", "tipo": "dos", "titulo": "Senet",
+      "descripcion": "Juego de tablero del antiguo Egipto, contra el ordenador.",
+      "controles": "Sigue las instrucciones en pantalla con el teclado.",
+      "autor": "Jim Hall", "licencia": "GPL-2.0",
+      "web": "https://gitlab.com/FreeDOS/games/senet", "repo": "https://gitlab.com/FreeDOS/games/senet",
+      "commit": "7e109fd1b731a7bc563887b65efd097e09217be5",
+      "carpeta": "GAMES/SENET", "exe": "SENET"
+    },
+    {
+      "id": "row4", "tipo": "dos", "titulo": "Cuatro en raya",
+      "descripcion": "El clásico juego de tablero vertical: alinea cuatro fichas antes que el ordenador.",
+      "controles": "Pulsa el número de la columna (1 a 7).",
+      "autor": "Andreas K. Förster", "licencia": "AGPL-3.0-or-later",
+      "web": "https://akfoerster.de/p/row4/", "repo": "https://gitlab.com/FreeDOS/games/row4",
+      "commit": "a0510bf3f7363234d5e253cb0b5f57f8af1c079d",
+      "carpeta": "GAMES/ROW4", "exe": "ROW4T"
+    },
+    {
+      "id": "zmiy", "tipo": "dos", "titulo": "Zmiy",
+      "descripcion": "La serpiente que crece cada vez que come. Para uno o dos jugadores.",
+      "controles": "Flechas para girar.",
+      "autor": "Mateusz Viste", "licencia": "BSD-2-Clause",
+      "web": "http://zmiy.sourceforge.net", "repo": "https://gitlab.com/FreeDOS/games/zmiy",
+      "commit": "14df7ef4f745b5df73754d15f3d6fd7b6dcd3bab",
+      "carpeta": "GAMES/ZMIY", "exe": "ZMIY"
+    },
+    {
+      "id": "ewsnake", "tipo": "dos", "titulo": "EW Snake",
+      "descripcion": "Otra serpiente, con niveles y obstáculos.",
+      "controles": "Flechas para girar.",
+      "autor": "Federico Marverti (yfede)", "licencia": "GPL-2.0",
+      "web": "https://gitlab.com/FreeDOS/games/ewsnake", "repo": "https://gitlab.com/FreeDOS/games/ewsnake",
+      "commit": "993b0076e4872c408bb1b5c9fee34289391168d6",
+      "carpeta": "GAMES/EWSNAKE", "exe": "EWSNAKE", "dpmi": true
+    },
+    {
+      "id": "sayswho", "tipo": "dos", "titulo": "SaysWho",
+      "descripcion": "Juego de memoria: repite la secuencia de luces y sonidos.",
+      "controles": "Flechas o ratón para elegir el color.",
+      "autor": "Jerome Shidel", "licencia": "BSD-3-Clause",
+      "web": "https://gitlab.com/DangerApps/sayswho", "repo": "https://gitlab.com/FreeDOS/games/sayswho",
+      "commit": "89db3c946b93ca01ae684ed522fdaba61b6125d3",
+      "carpeta": "GAMES/SAYSWHO", "exe": "SAYSWHO"
+    },
+    {
+      "id": "smiley", "tipo": "dos", "titulo": "Smiley",
+      "descripcion": "Juego sencillo de pelota y palas con una cara sonriente.",
+      "controles": "Ratón o flechas para mover la pala.",
+      "autor": "Jerome Shidel", "licencia": "BSD-3-Clause",
+      "web": "https://gitlab.com/DangerApps/smiley", "repo": "https://gitlab.com/FreeDOS/games/smiley",
+      "commit": "ce1499fdc7d273b60c517b419b801384cb94ac6b",
+      "carpeta": "GAMES/SMILEY", "exe": "SMILEY"
+    },
+    {
+      "id": "blkdrop", "tipo": "dos", "titulo": "BlockDrop",
+      "descripcion": "Haz caer grupos de bloques del mismo color para limpiar el tablero.",
+      "controles": "Se juega con el ratón: toca los grupos de bloques.",
+      "autor": "Jerome Shidel", "licencia": "BSD-3-Clause",
+      "web": "https://gitlab.com/DangerApps/blkdrop", "repo": "https://gitlab.com/FreeDOS/games/blkdrop",
+      "commit": "e22e7ace98d5ec20c486cc95989df06a06dc875e",
+      "carpeta": "GAMES/BLKDROP", "exe": "BLKDROP"
+    },
+    {
+      "id": "hangman", "tipo": "dos", "titulo": "Ahorcado",
+      "descripcion": "El ahorcado de siempre, con varios diccionarios (en inglés y otros idiomas).",
+      "controles": "Escribe letras con el teclado.",
+      "autor": "Mateusz Viste", "licencia": "GPL-2.0",
+      "web": "http://hangman-dos.sourceforge.net", "repo": "https://gitlab.com/FreeDOS/games/hangman",
+      "commit": "2fc58bb554d157694acdcca0fc4bf88f900feb2a",
+      "carpeta": "GAMES/HANGMAN", "exe": "HANGMAN"
+    },
+    {
+      "id": "eliza", "tipo": "dos", "titulo": "Eliza",
+      "descripcion": "Uno de los primeros programas de conversación de la historia (en inglés).",
+      "controles": "Escribe frases con el botón Abc y pulsa Intro.",
+      "autor": "Michael Day (a partir de ELIZA de Joseph Weizenbaum)", "licencia": "Dominio público",
+      "web": "https://gitlab.com/FreeDOS/games/eliza", "repo": "https://gitlab.com/FreeDOS/games/eliza",
+      "commit": "336bad91e38b7752b34659b5722b593971dbbf48",
+      "carpeta": "GAMES/ELIZA", "exe": "ELIZA"
+    }
+  ]
+}

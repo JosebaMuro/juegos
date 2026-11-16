@@ -6,6 +6,11 @@ Colección de juegos y herramientas para Android:
 - **Bloques**: piezas que caen y líneas que se completan (deslizar mueve, tocar gira, deslizar abajo deja caer; también hay botones).
 - **DOS**: DOSBox (js-dos 6.22 compilado a WebAssembly) dentro de un WebView, sin Internet. C: se guarda entre sesiones. Menú → *Importar* copia archivos o el contenido de un ZIP a C:. Teclado en pantalla completo y botón *Abc* para usar el teclado del móvil.
 - **Terminal Linux**: la shell real del sistema (`/system/bin/sh`, con las órdenes de toybox). No es una emulación: ejecuta procesos de verdad, sin permisos de root. Funciona con órdenes de línea (ls, cat, grep, ps, ping…); los programas de pantalla completa (vi, top) no, porque no hay pseudoterminal.
+- **Juegos libres**: catálogo de 29 juegos de licencia libre incluidos en la app, sin Internet:
+  - Para jugar con el dedo (HTML5 en un WebView que bloquea todo acceso externo): 2048 (MIT), Hextris (GPL-3), Una habitación oscura / A Dark Room (MPL-2, en español), Construye la torre (MIT).
+  - Clásicos de DOS (paquetes del proyecto FreeDOS, en el emulador DOS): NetHack, Linley's Dungeon Crawl, IVAN, Dungeons of Noudar 3D, The Mistral Report, Kraptor, Wing, DOS Defender, EV4DE, Liquid War, Vertigo, Mirror Magic, FancyMines, Bolitaire, Sudoku86, GNU Chess, Senet, Cuatro en raya, Zmiy, EW Snake, SaysWho, Smiley, BlockDrop, Ahorcado y Eliza (GPL, BSD, MIT, AGPL, NetHack GPL, Crawl GPL, Unlicense o dominio público).
+  - Cada juego DOS se monta como C: y guarda sus partidas aparte. El emulador muestra un mando (cruceta y botones; ⌨ cambia al teclado completo) y la pantalla funciona como un trackpad: deslizar mueve el ratón, tocar hace clic, mantener y deslizar arrastra.
+  - En la app, ⓘ en cada juego muestra autor, controles, enlace al código fuente y el texto completo de su licencia.
 - **Chat con IA local**: IA con visión que funciona en el propio móvil, sin Internet (solo se conecta una vez para descargar el modelo). Lleva llama.cpp compilado para cada tipo de procesador:
   - **Snapdragon**: NPU Hexagon y GPU Adreno (OpenCL), además de la CPU.
   - **Tensor, Exynos, MediaTek…**: GPU por Vulkan (Mali, Xclipse…) y CPU.
@@ -30,6 +35,9 @@ Cómo convierte la imagen (`PatternGenerator`): promedia bloques de píxeles par
 - `native/build-llama.sh` es la alternativa sin NDK (zig + musl, solo CPU).
 
 Los binarios van en `lib/arm64-v8a/libllama_*.so` dentro del APK (`extractNativeLibs=true`) y la app los ejecuta como procesos `llama-server` en 127.0.0.1.
+
+## Juegos libres (libres/)
+`libres/catalogo.json` es la lista de juegos (repositorio, commit fijo, licencia, autor, programa a ejecutar…). `python3 libres/preparar.py` los descarga con git, empaqueta los de DOS en `assets/dos/juegos/<id>.zip` (añade CWSDPMI a los que lo necesitan), copia los web en `assets/web/<id>/` quitando anuncios y analítica, y reúne las licencias en `assets/libres/licencias/`. Esos assets no se guardan en git: `build.sh` y la CI ejecutan el script si faltan. Para añadir un juego, añade una entrada al catálogo y vuelve a ejecutar el script.
 
 ## Licencias
 El emulador DOS incluye js-dos/DOSBox, con licencia GPL (ver `app/src/main/assets/dos/LICENSE-js-dos.txt`). Su código fuente está en https://github.com/caiiiycuk/js-dos (versión 6.22.60) y en el paquete npm `js-dos@6.22.60`.

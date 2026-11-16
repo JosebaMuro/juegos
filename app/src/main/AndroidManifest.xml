@@ -51,6 +51,18 @@
             android:exported="false" />
 
         <activity
+            android:name=".libres.CatalogoActivity"
+            android:label="Juegos libres"
+            android:exported="false" />
+
+        <activity
+            android:name=".libres.WebJuegoActivity"
+            android:label="Juego"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|keyboard"
+            android:hardwareAccelerated="true"
+            android:exported="false" />
+
+        <activity
             android:name=".chat.ChatActivity"
             android:label="Chat con IA"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|keyboard"

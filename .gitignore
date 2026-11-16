@@ -7,3 +7,7 @@ native/work/
 native/libs/
 keystore/
 *.jks
+# Generado por libres/preparar.py
+app/src/main/assets/dos/juegos/
+app/src/main/assets/web/
+app/src/main/assets/libres/

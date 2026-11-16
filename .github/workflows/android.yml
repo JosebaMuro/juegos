@@ -79,6 +79,8 @@ jobs:
           else
             echo "::warning::Sin secreto KEYSTORE_B64: el APK se firma con una clave nueva y no se instalará encima de versiones anteriores."
           fi
+      - name: Juegos libres (descarga y empaqueta los del catálogo)
+        run: python3 libres/preparar.py
       - name: Compilar APK
         env:
           KS_PASS: ${{ secrets.KEYSTORE_PASS || 'juegos123' }}
