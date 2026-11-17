@@ -6,7 +6,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
@@ -46,11 +45,15 @@ public class ModelStore {
     }
 
     /** Busca en el repositorio el GGUF con la cuantización elegida y el mmproj, y los descarga. */
-    public void download(ModelCatalog.Model m, Progress p) throws Exception {
+    /**
+     * preferQ40: en Snapdragon se prefiere la cuantización Q4_0, que es la que tienen optimizada
+     * los motores de GPU Adreno y NPU Hexagon de llama.cpp.
+     */
+    public void download(ModelCatalog.Model m, boolean preferQ40, Progress p) throws Exception {
         modelDir(m).mkdirs();
         JSONObject info = new JSONObject(get("https://huggingface.co/api/models/" + m.repo));
         JSONArray sib = info.getJSONArray("siblings");
-        String model = null, mmproj = null, mmprojAny = null;
+        String model = null, modelQ40 = null, mmproj = null, mmprojAny = null;
         String q = m.quant.toLowerCase(Locale.ROOT);
         for (int i = 0; i < sib.length(); i++) {
             String name = sib.getJSONObject(i).getString("rfilename");
@@ -63,8 +66,11 @@ public class ModelStore {
                 }
             } else if (low.contains(q) && model == null) {
                 model = name;
+            } else if (low.contains("q4_0") && modelQ40 == null) {
+                modelQ40 = name;
             }
         }
+        if (preferQ40 && modelQ40 != null) model = modelQ40;
         if (mmproj == null) mmproj = mmprojAny;
         if (model == null || mmproj == null) throw new Exception("No encuentro los archivos del modelo en " + m.repo);
         fetch(m.repo, mmproj, mmprojFile(m), "Visión", p);
@@ -139,7 +145,4 @@ public class ModelStore {
         in.close();
         return bo.toString("UTF-8");
     }
-
-    @SuppressWarnings("unused")
-    private static void touch(File f) throws Exception { new FileOutputStream(f, true).close(); }
 }

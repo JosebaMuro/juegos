@@ -82,29 +82,85 @@ public class Hardware {
     public boolean hasI8mm() { return features.contains("i8mm"); }
     public double ramGb() { return ramBytes / (1024.0 * 1024 * 1024); }
 
-    /** Variantes del motor de la más rápida a la más compatible. */
-    public List<String> engineCandidates() {
+    /** Fabricante del SoC: "QTI" (Snapdragon), "Google" (Tensor), "Mediatek", "Samsung"... */
+    public String socManufacturer() {
+        if (Build.VERSION.SDK_INT >= 31) {
+            try { return (String) Build.class.getField("SOC_MANUFACTURER").get(null); } catch (Throwable ignored) {}
+        }
+        return "";
+    }
+
+    public String socModel() {
+        if (Build.VERSION.SDK_INT >= 31) {
+            try { return (String) Build.class.getField("SOC_MODEL").get(null); } catch (Throwable ignored) {}
+        }
+        return "";
+    }
+
+    public boolean isSnapdragon() {
+        String m = socManufacturer().toLowerCase(Locale.ROOT);
+        String h = (Build.HARDWARE + " " + Build.BOARD + " " + socName).toLowerCase(Locale.ROOT);
+        return m.contains("qti") || m.contains("qualcomm") || h.contains("qcom") || h.contains("qualcomm")
+                || h.contains("snapdragon") || h.matches(".*\\b(sm|sdm|msm)\\d+.*");
+    }
+
+    public boolean hasOpenCl() {
+        return new File("/vendor/lib64/libOpenCL.so").exists() || new File("/system/vendor/lib64/libOpenCL.so").exists();
+    }
+
+    public boolean hasVulkan() {
+        return Build.VERSION.SDK_INT >= 28 && new File("/system/lib64/libvulkan.so").exists();
+    }
+
+    /** Variante de CPU más rápida que admite este procesador, seguida de las más compatibles. */
+    public List<String> cpuVariants() {
         List<String> out = new ArrayList<String>();
-        if (isArm64()) {
-            if (hasI8mm() && hasDotProd()) out.add("i8mm");
-            if (hasDotProd()) out.add("dotprod");
-            out.add("armv8");
-        } else if (isX86_64()) {
-            if (features.contains("avx2") && features.contains("fma")) out.add("avx2");
-            out.add("x86");
+        if (!isArm64()) return out;
+        if (hasI8mm() && hasDotProd()) out.add("cpu_i8mm");
+        if (hasDotProd()) out.add("cpu_dotprod");
+        out.add("cpu_armv8");
+        return out;
+    }
+
+    /**
+     * Todas las formas de ejecutar el modelo en este móvil: NPU Hexagon y GPU Adreno en
+     * Snapdragon, GPU por Vulkan (Mali en Tensor/Exynos/MediaTek, también Adreno) y la CPU.
+     * La app mide cuál es más rápida con el modelo elegido y se queda con esa.
+     */
+    public List<EngineSpec> engineCandidates(String libDir) {
+        List<EngineSpec> out = new ArrayList<EngineSpec>();
+        String sys = "/vendor/lib64:/system/lib64";
+        if (isArm64() && isSnapdragon() && hasOpenCl() && Build.VERSION.SDK_INT >= 31) {
+            String dsp = libDir + ";/vendor/dsp/cdsp;/vendor/lib/rfsa/adsp;/system/lib/rfsa/adsp;/dsp";
+            out.add(new EngineSpec("npu_hexagon", "snapdragon", "NPU Hexagon (Snapdragon)", true,
+                    "--device", "HTP0", "-ngl", "99", "--no-mmap")
+                    .env("ADSP_LIBRARY_PATH", dsp).env("LD_LIBRARY_PATH", sys));
+            out.add(new EngineSpec("gpu_adreno", "snapdragon", "GPU Adreno (OpenCL)", true,
+                    "--device", "GPUOpenCL", "-ngl", "99")
+                    .env("LD_LIBRARY_PATH", sys));
+        }
+        if (isArm64() && hasVulkan()) {
+            out.add(new EngineSpec("gpu_vulkan", "vulkan", "GPU por Vulkan", true, "-ngl", "99"));
+        }
+        for (String v : cpuVariants()) {
+            String label = v.equals("cpu_i8mm") ? "CPU ARMv8.6 con i8mm" : v.equals("cpu_dotprod") ? "CPU ARMv8.2 con dotprod" : "CPU ARMv8 básica";
+            out.add(new EngineSpec(v, v, label, false, "-ngl", "0"));
         }
         return out;
     }
 
     public String summary() {
         StringBuilder sb = new StringBuilder();
-        sb.append(socName).append(" · ").append(abi).append(" · ")
+        String soc = (socManufacturer() + " " + socModel()).trim();
+        sb.append(soc.length() > 0 ? soc : socName).append(" · ").append(abi).append(" · ")
                 .append(cores).append(" núcleos (").append(fastCores).append(" rápidos) · ")
                 .append(String.format(Locale.ROOT, "%.1f", ramGb())).append(" GB de RAM");
         if (isArm64()) {
             sb.append(" · ");
             sb.append(hasI8mm() ? "i8mm+dotprod" : hasDotProd() ? "dotprod" : "NEON básico");
         }
+        if (hasVulkan()) sb.append(" · Vulkan");
+        if (isSnapdragon() && hasOpenCl()) sb.append(" · OpenCL Adreno");
         return sb.toString();
     }
 }

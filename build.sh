@@ -12,14 +12,19 @@ OUT=build
 KEYSTORE="${KEYSTORE:-keystore/juegos.jks}"
 KS_PASS="${KS_PASS:-juegos123}"
 
-rm -rf "$OUT" && mkdir -p "$OUT/gen" "$OUT/classes"
+if [ ! -f "$SRC/assets/libres/catalogo.json" ]; then
+  echo "0/5 Juegos libres (libres/preparar.py)"
+  python3 libres/preparar.py
+fi
+
+rm -rf "$OUT/gen" "$OUT/classes" "$OUT/native" "$OUT"/*.apk "$OUT"/*.dex && mkdir -p "$OUT/gen" "$OUT/classes"
 
 echo "1/5 Recursos (aapt)"
 # El manifiesto fuente no lleva "package" (estilo Gradle moderno); se lo añadimos aquí.
 sed 's|<manifest |<manifest package="com.joseba.juegos" |' "$SRC/AndroidManifest.xml" > "$OUT/AndroidManifest.xml"
 aapt package -f -m -J "$OUT/gen" -M "$OUT/AndroidManifest.xml" -S "$SRC/res" -A "$SRC/assets" \
   -I "$ANDROID_JAR" -F "$OUT/app.unaligned.apk" \
-  --min-sdk-version 21 --target-sdk-version 34 --version-code 3 --version-name 3.0
+  --min-sdk-version 21 --target-sdk-version 34 --version-code 5 --version-name 5.0
 
 echo "2/5 Java (javac)"
 find "$SRC/java" "$OUT/gen" -name '*.java' > "$OUT/sources.txt"

@@ -46,8 +46,13 @@ import java.util.zip.ZipInputStream;
 public class DosActivity extends Activity {
     private static final String HOST = "https://appassets.androidplatform.net/";
     private static final int REQ_IMPORT = 7;
+    /** Extras para abrir directamente un juego incluido (assets/dos/juegos/&lt;id&gt;.zip). */
+    public static final String EXTRA_JUEGO = "juego";
+    public static final String EXTRA_EXE = "exe";
+    public static final String EXTRA_TITULO = "titulo";
 
     private WebView web;
+    private String startUrl;
     private File importDir;
     private final Handler main = new Handler(Looper.getMainLooper());
 
@@ -79,7 +84,14 @@ public class DosActivity extends Activity {
             }
         });
         setContentView(web);
-        web.loadUrl(HOST + "dos/index.html");
+        startUrl = HOST + "dos/index.html";
+        String juego = getIntent().getStringExtra(EXTRA_JUEGO);
+        if (juego != null) {
+            startUrl += "?juego=" + Uri.encode(juego) + "&exe=" + Uri.encode(getIntent().getStringExtra(EXTRA_EXE));
+            String t = getIntent().getStringExtra(EXTRA_TITULO);
+            if (t != null) setTitle(t);
+        }
+        web.loadUrl(startUrl);
     }
 
     /** Sirve los archivos de assets/dos y los archivos importados. */
@@ -171,8 +183,12 @@ public class DosActivity extends Activity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add(0, 1, 0, "Importar programa (ZIP o archivo)");
-        menu.add(0, 2, 0, "Reiniciar DOS");
+        if (getIntent().getStringExtra(EXTRA_JUEGO) == null) {
+            menu.add(0, 1, 0, "Importar programa (ZIP o archivo)");
+            menu.add(0, 2, 0, "Reiniciar DOS");
+        } else {
+            menu.add(0, 2, 0, "Reiniciar juego");
+        }
         return true;
     }
 
@@ -292,7 +308,7 @@ public class DosActivity extends Activity {
 
     private void restart() {
         web.loadUrl("about:blank");
-        web.loadUrl(HOST + "dos/index.html");
+        web.loadUrl(startUrl);
     }
 
     @Override

@@ -22,6 +22,22 @@
   .k.mod.on { background: #b8860b; color: #000; }
   .k.w15 { flex: 1.5; } .k.w2 { flex: 2; } .k.w6 { flex: 6; }
   .k.fn { font-size: 11px; background: #2b2b40; }
+  .k.big { font-size: 22px; }
+  .k.blank { visibility: hidden; }
+  #pad { display: none; }
+  body.juego #kbd { display: none; }
+  body.juego #pad { display: flex; }
+  body.juego.full #kbd { display: flex; }
+  body.juego.full #pad { display: none; }
+  #pad { flex: 1; flex-direction: column; gap: 6px; padding: 6px; box-sizing: border-box; min-height: 0; }
+  #pad .top { display: flex; gap: 4px; flex: none; height: 40px; }
+  #pad .main { display: flex; gap: 10px; flex: 1; min-height: 0; }
+  #pad .dpad { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 4px; max-width: 60vh; }
+  #pad .btns { flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); grid-auto-rows: 1fr; gap: 6px; }
+  @media (orientation: landscape) {
+    #wrap { flex-direction: row; }
+    #screen { height: 100%; width: auto; max-height: none; max-width: 62vw; }
+  }
   #soft { position: absolute; left: -1000px; top: 0; width: 10px; height: 10px; opacity: 0; }
 </style>
 </head>
@@ -29,6 +45,7 @@
 <div id="wrap">
   <div id="screen"><canvas id="jsdos"></canvas><div id="status">Arrancando DOS…</div></div>
   <div id="kbd"></div>
+  <div id="pad"></div>
 </div>
 <input id="soft" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
 <script>
@@ -71,18 +88,18 @@
     [["Ctrl", 17, "mod w15"], ["Alt", 18, "mod w15"], ["`", 192], ["Espacio", 32, "w6"], ["Supr", 46, "fn"], ["←", 37], ["↓", 40], ["→", 39]]
   ];
   var kbd = document.getElementById("kbd");
-  rows.forEach(function (r) {
-    var row = document.createElement("div");
-    row.className = "row";
-    r.forEach(function (k) {
+  function makeKey(k) {
       var el = document.createElement("div");
       el.className = "k " + (k[2] || "");
       el.textContent = k[0];
       var code = k[1];
+      var sticky = (code in mods) && !/big/.test(k[2] || "");
+      if (!code) return el;
       el.addEventListener("pointerdown", function (e) {
         e.preventDefault();
         if (code === "soft") { openSoft(); return; }
-        if (code in mods) {
+        if (code === "toggle") { document.body.classList.toggle("full"); return; }
+        if (sticky) {
           mods[code] = !mods[code];
           el.classList.toggle("on", mods[code]);
           press(code, mods[code]);
@@ -92,7 +109,7 @@
         press(code, true);
       });
       var up = function (e) {
-        if (code === "soft" || code in mods) return;
+        if (code === "soft" || code === "toggle" || sticky) return;
         if (!el.classList.contains("down")) return;
         el.classList.remove("down");
         press(code, false);
@@ -101,10 +118,36 @@
       el.addEventListener("pointerup", up);
       el.addEventListener("pointerleave", up);
       el.addEventListener("pointercancel", up);
-      row.appendChild(el);
-    });
+      return el;
+  }
+  rows.forEach(function (r) {
+    var row = document.createElement("div");
+    row.className = "row";
+    r.forEach(function (k) { row.appendChild(makeKey(k)); });
     kbd.appendChild(row);
   });
+
+  // ---- Mando para juegos: cruceta y botones grandes; ⌨ cambia al teclado completo ----
+  var params = new URLSearchParams(location.search);
+  var juego = params.get("juego");
+  var exe = params.get("exe");
+  if (juego) {
+    document.body.classList.add("juego");
+    kbd.firstChild.appendChild(makeKey(["🎮", "toggle", "fn"]));
+    var pad = document.getElementById("pad");
+    var top = document.createElement("div"); top.className = "top";
+    [["Esc", 27, "fn"], ["F1", 112, "fn"], ["F2", 113, "fn"], ["S", 83], ["N", 78], ["Y", 89],
+     ["1", 49], ["2", 50], ["Abc", "soft", "fn"], ["⌨", "toggle", "fn"]].forEach(function (k) { top.appendChild(makeKey(k)); });
+    var padMain = document.createElement("div"); padMain.className = "main";
+    var dpad = document.createElement("div"); dpad.className = "dpad";
+    [["", 0, "blank"], ["↑", 38, "big"], ["", 0, "blank"], ["←", 37, "big"], ["↓", 40, "big"], ["→", 39, "big"],
+     ["", 0, "blank"], ["", 0, "blank"], ["", 0, "blank"]].forEach(function (k) { dpad.appendChild(makeKey(k)); });
+    var btns = document.createElement("div"); btns.className = "btns";
+    [["Intro", 13, "big"], ["Espacio", 32, "big"], ["Ctrl", 17, "big"], ["Alt", 18, "big"],
+     ["Shift", 16, "big"], ["Tab", 9, "big"]].forEach(function (k) { btns.appendChild(makeKey(k)); });
+    padMain.appendChild(dpad); padMain.appendChild(btns);
+    pad.appendChild(top); pad.appendChild(padMain);
+  }
 
   // ---- Teclado del sistema (Android): se traducen los caracteres a teclas ----
   var soft = document.getElementById("soft");
@@ -142,6 +185,48 @@
     else if (e.key === "Backspace" && soft.value.length === 0) { e.preventDefault(); enqueue(function (d) { tap(8, false, d); }); }
   });
 
+  // ---- Ratón táctil (como un trackpad) ----
+  // DOSBox mueve el puntero de forma relativa. Si SDL recibe el toque directamente, cada toque es un
+  // clic donde ya estaba el puntero y cada arrastre lleva el botón pulsado. Aquí: arrastrar mueve el
+  // puntero, tocar hace clic, y mantener pulsado medio segundo antes de arrastrar arrastra con el botón.
+  (function () {
+    var scr = document.getElementById("screen");
+    var GAIN = 1.4;
+    var vx = 0, vy = 0, lastX = 0, lastY = 0, startT = 0, moved = 0, dragging = false, holdTimer = null;
+    function canvas() { return document.querySelector("#screen canvas"); }
+    function send(type, x, y) {
+      var c = canvas();
+      if (c) c.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, button: 0, buttons: type === "mouseup" ? 0 : 1, bubbles: true }));
+    }
+    function stop(e) { e.stopPropagation(); e.preventDefault(); }
+    scr.addEventListener("touchstart", function (e) {
+      stop(e);
+      var t = e.changedTouches[0];
+      lastX = t.clientX; lastY = t.clientY; startT = Date.now(); moved = 0; dragging = false;
+      clearTimeout(holdTimer);
+      holdTimer = setTimeout(function () { if (moved < 10) { dragging = true; send("mousedown", vx, vy); } }, 500);
+    }, true);
+    scr.addEventListener("touchmove", function (e) {
+      stop(e);
+      var t = e.changedTouches[0];
+      var dx = (t.clientX - lastX) * GAIN, dy = (t.clientY - lastY) * GAIN;
+      lastX = t.clientX; lastY = t.clientY;
+      moved += Math.abs(dx) + Math.abs(dy);
+      vx += dx; vy += dy;
+      send("mousemove", vx, vy);
+    }, true);
+    scr.addEventListener("touchend", function (e) {
+      stop(e);
+      clearTimeout(holdTimer);
+      if (dragging) { send("mouseup", vx, vy); dragging = false; return; }
+      if (moved < 10 && Date.now() - startT < 500) {
+        send("mousedown", vx, vy);
+        setTimeout(function () { send("mouseup", vx, vy); }, 80);
+      }
+    }, true);
+    scr.addEventListener("touchcancel", function (e) { clearTimeout(holdTimer); if (dragging) send("mouseup", vx, vy); dragging = false; }, true);
+  })();
+
   // ---- Arranque ----
   function importFiles(fs) {
     // La app Android deja aquí los archivos que el usuario ha importado.
@@ -173,6 +258,18 @@
     onerror: function (m) { status("Error: " + m); }
   }).ready(function (fs, main) {
     window.dosfs = fs;
+    if (juego) {
+      // Juego incluido: su carpeta se monta como C: y se guarda aparte (las partidas persisten).
+      var dir = "/juego_" + juego.replace(/[^a-z0-9]/gi, "");
+      fs.extract("juegos/" + juego + ".zip", dir).then(function () {
+        return main(["-c", "mount -u c", "-c", "mount c " + dir, "-c", "c:", "-c", "cls", "-c", exe || "dir /w"]);
+      }).then(function (c) {
+        ci = c;
+        window.ci = c;
+        status("");
+      }).catch(function (e) { status("Error: " + e); });
+      return;
+    }
     // C: vive en /disco, que se guarda en IndexedDB y persiste entre sesiones.
     fs.extract("inicio.zip", "/disco").then(function () {
       return importFiles(fs);

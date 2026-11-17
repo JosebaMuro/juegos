@@ -18,9 +18,9 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * Motor local: llama.cpp (llama-server) compilado para cada nivel de CPU ARM64 e incluido
- * en la app como bibliotecas nativas. Se arranca la variante más rápida que admite la CPU
- * (i8mm → dotprod → ARMv8 básico); si una falla, se prueba la siguiente.
+ * Motor local: llama.cpp (llama-server) incluido en la app como bibliotecas nativas, en
+ * varias versiones: NPU Hexagon y GPU Adreno (Snapdragon), GPU por Vulkan y CPU ARM64 con
+ * distintas extensiones. Se mide cuál es más rápida en este móvil con el modelo elegido.
  * La app habla con él por HTTP en 127.0.0.1: nada sale del móvil.
  */
 public class LocalEngine {
@@ -32,7 +32,7 @@ public class LocalEngine {
     private final Hardware hw;
     private Process process;
     private int port;
-    private String variant;
+    private EngineSpec current;
     private final LinkedList<String> log = new LinkedList<String>();
 
     public LocalEngine(Context c, Hardware hw) {
@@ -40,46 +40,35 @@ public class LocalEngine {
         this.hw = hw;
     }
 
-    public String variant() { return variant; }
+    public EngineSpec current() { return current; }
     public boolean isRunning() { return process != null; }
 
-    public synchronized String recentLog() {
-        StringBuilder sb = new StringBuilder();
-        for (String l : log) sb.append(l).append('\n');
-        return sb.toString();
+    public String libDir() { return ctx.getApplicationInfo().nativeLibraryDir; }
+
+    public boolean available(EngineSpec s) {
+        return new File(libDir(), "libllama_" + s.binary + ".so").exists();
     }
 
-    private File binary(String v) {
-        return new File(ctx.getApplicationInfo().nativeLibraryDir, "libllama_" + v + ".so");
+    /** Candidatos que existen en esta compilación de la app y encajan con el hardware. */
+    public List<EngineSpec> candidates() {
+        List<EngineSpec> out = new ArrayList<EngineSpec>();
+        for (EngineSpec s : hw.engineCandidates(libDir())) if (available(s)) out.add(s);
+        return out;
     }
 
-    /** Arranca el motor con el modelo indicado. Bloquea hasta que está listo (llamar fuera del hilo principal). */
-    public void start(File model, File mmproj, Listener l) throws Exception {
+    /** Arranca el motor indicado y espera a que el modelo esté cargado. Devuelve false si no funciona. */
+    public boolean start(EngineSpec spec, File model, File mmproj, Listener l) throws Exception {
         stop();
-        List<String> tried = new ArrayList<String>();
-        for (String v : hw.engineCandidates()) {
-            File bin = binary(v);
-            if (!bin.exists()) continue;
-            tried.add(v);
-            l.onStatus("Arrancando el motor (" + describe(v) + ", " + hw.fastCores + " hilos)…");
-            if (tryStart(bin, model, mmproj, l)) {
-                variant = v;
-                return;
-            }
+        l.onStatus("Arrancando " + spec.label + "…");
+        if (tryStart(spec, model, mmproj, l)) {
+            current = spec;
+            return true;
         }
-        throw new Exception(tried.isEmpty()
-                ? "Este móvil (" + hw.abi + ") no tiene un motor compatible en la app."
-                : "El motor no pudo arrancar. Últimas líneas:\n" + tail(12));
+        return false;
     }
 
-    public static String describe(String v) {
-        if ("i8mm".equals(v)) return "CPU ARMv8.6 con i8mm";
-        if ("dotprod".equals(v)) return "CPU ARMv8.2 con dotprod";
-        if ("armv8".equals(v)) return "CPU ARMv8 básica";
-        return v;
-    }
-
-    private boolean tryStart(File bin, File model, File mmproj, Listener l) throws Exception {
+    private boolean tryStart(EngineSpec spec, File model, File mmproj, Listener l) throws Exception {
+        File bin = new File(libDir(), "libllama_" + spec.binary + ".so");
         ServerSocket ss = new ServerSocket(0);
         port = ss.getLocalPort();
         ss.close();
@@ -97,11 +86,17 @@ public class LocalEngine {
         cmd.add("-cram"); cmd.add("256");
         cmd.add("--no-webui");
         cmd.add("--no-warmup");
+        cmd.addAll(spec.args);
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
         pb.environment().put("HOME", ctx.getFilesDir().getAbsolutePath());
         pb.environment().put("TMPDIR", ctx.getCacheDir().getAbsolutePath());
-        synchronized (this) { log.clear(); }
+        for (java.util.Map.Entry<String, String> e : spec.env.entrySet()) {
+            String old = pb.environment().get(e.getKey());
+            pb.environment().put(e.getKey(), e.getKey().equals("LD_LIBRARY_PATH") && old != null
+                    ? e.getValue() + ":" + old : e.getValue());
+        }
+        synchronized (this) { log.clear(); log.add("$ " + spec.label + ": " + cmd); }
         final Process p = pb.start();
         process = p;
         Thread reader = new Thread(new Runnable() {
@@ -112,7 +107,7 @@ public class LocalEngine {
                     while ((line = r.readLine()) != null) {
                         synchronized (LocalEngine.this) {
                             log.add(line);
-                            if (log.size() > 200) log.removeFirst();
+                            if (log.size() > 300) log.removeFirst();
                         }
                     }
                 } catch (Exception ignored) {}
@@ -131,12 +126,55 @@ public class LocalEngine {
                 int code = c.getResponseCode();
                 c.disconnect();
                 if (code == 200) return true;
-                l.onStatus("Cargando el modelo en memoria…");
+                l.onStatus("Cargando el modelo en " + spec.label + "…");
             } catch (Exception ignored) {}
             Thread.sleep(500);
         }
         stop();
         return false;
+    }
+
+    /**
+     * Mide la velocidad de generación (tokens por segundo) del motor que está en marcha
+     * con una petición corta de texto. Devuelve -1 si falla.
+     */
+    public double benchmark() {
+        try {
+            JSONArray msgs = new JSONArray();
+            msgs.put(new JSONObject().put("role", "user").put("content",
+                    "Escribe los números del uno al treinta en palabras, separados por comas."));
+            JSONObject body = new JSONObject();
+            body.put("messages", msgs);
+            body.put("max_tokens", 48);
+            body.put("temperature", 0);
+            long t0 = System.currentTimeMillis();
+            HttpURLConnection c = (HttpURLConnection) new URL("http://127.0.0.1:" + port + "/v1/chat/completions").openConnection();
+            c.setConnectTimeout(5000);
+            c.setReadTimeout(5 * 60 * 1000);
+            c.setRequestMethod("POST");
+            c.setDoOutput(true);
+            c.setRequestProperty("content-type", "application/json");
+            OutputStream os = c.getOutputStream();
+            os.write(body.toString().getBytes("UTF-8"));
+            os.close();
+            if (c.getResponseCode() != 200) return -1;
+            StringBuilder sb = new StringBuilder();
+            BufferedReader r = new BufferedReader(new InputStreamReader(c.getInputStream(), "UTF-8"));
+            String line;
+            while ((line = r.readLine()) != null) sb.append(line);
+            r.close();
+            long dt = System.currentTimeMillis() - t0;
+            JSONObject j = new JSONObject(sb.toString());
+            JSONObject timings = j.optJSONObject("timings");
+            if (timings != null && timings.optDouble("predicted_per_second", 0) > 0) {
+                return timings.getDouble("predicted_per_second");
+            }
+            JSONObject usage = j.optJSONObject("usage");
+            int toks = usage != null ? usage.optInt("completion_tokens", 0) : 0;
+            return toks > 0 && dt > 0 ? toks * 1000.0 / dt : -1;
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
     private static boolean exited(Process p) {

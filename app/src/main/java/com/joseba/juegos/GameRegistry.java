@@ -3,6 +3,7 @@ package com.joseba.juegos;
 import com.joseba.juegos.bloques.BloquesGame;
 import com.joseba.juegos.chat.ChatGame;
 import com.joseba.juegos.dos.DosGame;
+import com.joseba.juegos.libres.LibresGame;
 import com.joseba.juegos.puntocruz.PuntoCruzGame;
 import com.joseba.juegos.terminal.TerminalGame;
 
@@ -18,6 +19,7 @@ public final class GameRegistry {
         List<Game> games = new ArrayList<Game>();
         games.add(new PuntoCruzGame());
         games.add(new BloquesGame());
+        games.add(new LibresGame());
         games.add(new DosGame());
         games.add(new TerminalGame());
         games.add(new ChatGame());
