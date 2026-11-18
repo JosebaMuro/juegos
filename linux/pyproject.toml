@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "juegos-linux"
+version = "5.1.0"
+description = "Juegos Reunidos para Linux: escritorio (X11/Wayland) y terminal (TUI)"
+requires-python = ">=3.10"
+dependencies = ["pygame>=2.5", "numpy>=1.26", "pillow>=10.0"]
+
+[project.scripts]
+juegos = "juegos_linux.__main__:main"
+juegos-tui = "juegos_linux.__main__:tui"
+juegos-x11 = "juegos_linux.__main__:gui"
+
+[tool.setuptools.packages.find]
+include = ["juegos_linux*"]
