@@ -1,0 +1,64 @@
+name: Linux
+
+on:
+  push:
+    branches: [main]
+    paths: [linux/**, libres/**, .github/workflows/linux.yml]
+  pull_request:
+    paths: [linux/**, libres/**, .github/workflows/linux.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Dependencias
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq dosbox
+          python -m pip install -q ./linux pytest
+      - name: Pruebas (lógica y escritorio sin pantalla)
+        working-directory: linux
+        run: python -m pytest -q tests
+      - name: TUI en un terminal de verdad (consola de Linux y xterm)
+        working-directory: linux
+        run: |
+          python tests/tui_pty.py linux
+          python tests/tui_pty.py xterm-256color
+      - name: Juegos libres y paquete
+        run: linux/build-linux.sh
+      - name: Un juego de DOS arranca en DOSBox (SDL sin pantalla)
+        run: |
+          export JUEGOS_DATOS=$PWD/linux/datos SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy
+          python - <<'PY'
+          import subprocess
+          from juegos_linux.core import catalogo
+          js = [j for j in catalogo.cargar() if j.tipo == "dos"]
+          print(len(js), "juegos de DOS;", sum(catalogo.disponible(j) for j in js), "incluidos")
+          j = js[0]
+          cmd = catalogo.comando_dos(catalogo.carpeta_dos(j), j.exe, pantalla_completa=False)
+          try:
+              subprocess.run(cmd, env=catalogo.entorno_dos(), timeout=8, capture_output=True)
+              raise SystemExit("DOSBox terminó antes de tiempo")
+          except subprocess.TimeoutExpired:
+              print("DOSBox sigue jugando a", j.titulo, "tras 8 s: bien")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: juegos-linux
+          path: dist/juegos-linux.tar.gz
+      - name: Publicar en el release linux-latest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view linux-latest >/dev/null 2>&1 || \
+            gh release create linux-latest --title "Juegos Reunidos para Linux" \
+              --notes "Paquete para Linux (escritorio y TUI). Lo usa instalar-ubuntu.sh de la suite." --prerelease
+          gh release upload linux-latest dist/juegos-linux.tar.gz --clobber

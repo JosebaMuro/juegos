@@ -19,7 +19,8 @@ import sys
 import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ASSETS = os.path.join(ROOT, "app", "src", "main", "assets")
+# JUEGOS_ASSETS: otra carpeta de destino (la versión de Linux usa linux/datos)
+ASSETS = os.environ.get("JUEGOS_ASSETS") or os.path.join(ROOT, "app", "src", "main", "assets")
 CACHE = os.path.join(ROOT, "build", "libres-src")
 CATALOGO = os.path.join(ROOT, "libres", "catalogo.json")
 
