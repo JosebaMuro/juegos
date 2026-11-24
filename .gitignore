@@ -11,3 +11,9 @@ keystore/
 app/src/main/assets/dos/juegos/
 app/src/main/assets/web/
 app/src/main/assets/libres/
+
+# Linux
+linux/datos/
+dist/
+__pycache__/
+*.egg-info/

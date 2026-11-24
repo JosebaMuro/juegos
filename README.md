@@ -1,6 +1,6 @@
 # Juegos Reunidos
 
-Colección de juegos y herramientas para Android:
+Colección de juegos y herramientas para Android y, desde la 5.1, también para **Linux** (escritorio X11/Wayland y terminal/TUI sin escritorio: ver [linux/LEEME-linux.md](linux/LEEME-linux.md)):
 
 - **Punto de cruz**: convierte una foto en un patrón y lo coloreas punto a punto.
 - **Bloques**: piezas que caen y líneas que se completan (deslizar mueve, tocar gira, deslizar abajo deja caer; también hay botones).
